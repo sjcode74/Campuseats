@@ -1,5 +1,13 @@
 # CampusEats — Project Brief
 
+## Contents
+
+- `http-log.md` — annotated curl request/response log (Assignment 1, Task 1)
+- `network-analysis.md` — browser DevTools network panel analysis (Assignment 1, Task 2)
+- `brief.md` — CampusEats project brief: what/who/nouns/verbs (Assignment 1, Task 4)
+- `design.md` — service design, capabilities, and contracts (Assignment 2)
+- `services.drawio` / `services.png` — service design diagram (Assignment 2, Task 2)
+- `docs/` — supporting documentation
 ## What the system does
 
 CampusEats is a web-based food-ordering platform for a university campus. It lets
@@ -50,3 +58,4 @@ busy a place is before they walk over.
 
 *(Nouns roughly map to the resources/entities the API will expose; verbs
 roughly map to the endpoints/actions those resources need to support.)*
+
