@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="PayFlexPaymentService"
+    targetNamespace="http://payflex.example.com/payment/wsdl"
+    xmlns:tns="http://payflex.example.com/payment/wsdl"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+  <!-- ===================== TYPES ===================== -->
+  <types>
+    <xsd:schema targetNamespace="http://payflex.example.com/payment/wsdl">
+
+      <xsd:element name="ChargeRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="orderId" type="xsd:string"/>
+            <xsd:element name="amount" type="xsd:decimal"/>
+            <xsd:element name="currency" type="xsd:string"/>
+            <xsd:element name="cardToken" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ChargeResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paymentId" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+            <xsd:element name="timestamp" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ChargeFault">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="faultCode" type="xsd:string"/>
+            <xsd:element name="faultMessage" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <!-- ===================== MESSAGES ===================== -->
+  <message name="ChargeRequestMessage">
+    <part name="parameters" element="tns:ChargeRequest"/>
+  </message>
+
+  <message name="ChargeResponseMessage">
+    <part name="parameters" element="tns:ChargeResponse"/>
+  </message>
+
+  <message name="ChargeFaultMessage">
+    <part name="parameters" element="tns:ChargeFault"/>
+  </message>
+
+  <!-- ===================== PORT TYPE ===================== -->
+  <portType name="PayFlexPaymentPortType">
+    <operation name="charge">
+      <input message="tns:ChargeRequestMessage"/>
+      <output message="tns:ChargeResponseMessage"/>
+      <fault name="ChargeFault" message="tns:ChargeFaultMessage"/>
+    </operation>
+  </portType>
+
+  <!-- ===================== BINDING ===================== -->
+  <binding name="PayFlexPaymentBinding" type="tns:PayFlexPaymentPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="charge">
+      <soap:operation soapAction="http://payflex.example.com/payment/charge"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="ChargeFault">
+        <soap:fault name="ChargeFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- ===================== SERVICE ===================== -->
+  <service name="PayFlexPaymentService">
+    <port name="PayFlexPaymentPort" binding="tns:PayFlexPaymentBinding">
+      <soap:address location="https://api.payflex.example.com/soap/payment"/>
+    </port>
+  </service>
+
+</definitions>
