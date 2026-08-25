@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:pay="http://payflex.example.com/payment/wsdl">
+
+  <soap:Body>
+    <pay:ChargeResponse>
+      <pay:paymentId>PMT-77219A</pay:paymentId>
+      <pay:status>success</pay:status>
+      <pay:timestamp>2026-08-25T14:32:10Z</pay:timestamp>
+    </pay:ChargeResponse>
+  </soap:Body>
+
+</soap:Envelope>
