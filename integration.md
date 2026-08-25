@@ -83,3 +83,24 @@ simple document/database table rather than a live registry server.
 | WSDL location | https://developer.payflex.example.com/docs/wsdl/partner.wsdl |
 | Operation used | charge |
 | Owning CampusEats service | Payment Service |
+
+## Fault mapping
+
+PayFlex's SOAP fault uses its own vocabulary (`card_declined`,
+`gateway_timeout`, etc.), which must not leak into CampusEats' own contract.
+The Payment Service acts as a translation layer: it catches the partner's
+`soap:Fault`, inspects the `faultCode`, and maps it to the error CampusEats'
+own `placeOrder` contract (Assignment 2, Task 4) already promises callers.
+
+| PayFlex fault code | Meaning (PayFlex vocabulary) | Mapped to (CampusEats contract) |
+|---|---|---|
+| `card_declined` | The card issuer declined the transaction | `PaymentFailed` |
+| `gateway_timeout` | PayFlex did not respond in time | `PaymentFailed` |
+| `invalid_card_token` | The card token was malformed or expired | `PaymentFailed` |
+| `insufficient_funds` | The card lacks funds for this amount | `PaymentFailed` |
+
+CampusEats students only ever see `PaymentFailed` (with a generic,
+student-friendly message like "Payment could not be processed, please try
+again"). The specific PayFlex fault code is logged internally for debugging
+and support purposes, but it is never returned in the `placeOrder` response —
+this keeps our contract stable even if we later switch payment providers.
