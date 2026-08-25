@@ -59,3 +59,27 @@ SOAPAction: "http://payflex.example.com/payment/charge"
   </soap:Body>
 </soap:Envelope>
 ```
+
+## Discovery
+
+CampusEats obtains the PayFlex WSDL through a **direct URL**, published by
+PayFlex on their developer portal, rather than a live UDDI registry (UDDI is
+largely obsolete in modern practice). The WSDL is fetched once at integration
+time and stored alongside our own contracts in `partner.wsdl`, so our Payment
+Service does not depend on PayFlex's portal being reachable at runtime.
+
+For internal tracking, CampusEats also maintains a small **service catalogue**
+— a lightweight internal registry recording every external partner we
+integrate with, similar in spirit to a UDDI tModel entry but stored as a
+simple document/database table rather than a live registry server.
+
+### Catalogue entry
+
+| Field | Value |
+|---|---|
+| Business name | PayFlex Inc. |
+| Service name | PayFlex Payment Service |
+| Endpoint | https://api.payflex.example.com/soap/payment |
+| WSDL location | https://developer.payflex.example.com/docs/wsdl/partner.wsdl |
+| Operation used | charge |
+| Owning CampusEats service | Payment Service |
