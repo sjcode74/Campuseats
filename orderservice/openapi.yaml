@@ -3,33 +3,36 @@ openapi: 3.0.3
 info:
   title: CampusEats Order Service
   description: REST API for managing CampusEats orders
-  version: 1.0.0
+  version: 1.1.0
 
 servers:
   - url: http://localhost:5000
 
 paths:
-
   /orders:
+    options:
+      summary: Describe supported methods for the order collection
+      responses:
+        '204':
+          description: No content
+          headers:
+            Allow:
+              schema:
+                type: string
+              example: GET, POST, OPTIONS
     post:
       summary: Create a new order
       operationId: createOrder
-
       parameters:
-        - name: Idempotency-Key
-          in: header
-          required: true
-          schema:
-            type: string
-          description: Unique key used to safely retry the request
-
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateOrderRequest'
-
       responses:
         '201':
           description: Order created successfully
@@ -38,44 +41,59 @@ paths:
               description: URL of the newly created order
               schema:
                 type: string
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
-
         '400':
-          description: Malformed request body or missing Idempotency-Key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '503':
-          description: Payment Service is unavailable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
-
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
-      summary: Get orders filtered by status
+      summary: List orders with optional filtering, sorting and pagination
       operationId: getOrders
-
       parameters:
         - name: status
           in: query
           required: false
           schema:
             type: string
-            enum:
-              - pending_payment
-              - placed
-              - confirmed
-              - preparing
-              - delivered
-              - cancelled
-
+            enum: [pending_payment, placed, confirmed, preparing, delivered, cancelled]
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [createdAt, -createdAt, totalAmount, -totalAmount, orderId, -orderId]
+            default: createdAt
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - $ref: '#/components/parameters/AcceptHeader'
       responses:
         '200':
           description: List of matching orders
@@ -85,62 +103,125 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/OrderResponse'
-
         '400':
-          description: Invalid status filter
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/BadRequest'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /orders/{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+    options:
+      summary: Describe supported methods for one order
+      responses:
+        '204':
+          description: No content
+          headers:
+            Allow:
+              schema:
+                type: string
+              example: GET, PATCH, DELETE, OPTIONS
     get:
       summary: Get a single order
       operationId: getOrder
-
       parameters:
-        - name: orderId
-          in: path
-          required: true
-          schema:
-            type: integer
-
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/IfNoneMatch'
       responses:
         '200':
           description: Order found
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControl'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
-
+        '304':
+          description: Resource has not changed
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControl'
         '404':
-          description: Order not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      summary: Partially update an order
+      operationId: patchOrder
+      parameters:
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderRequest'
+      responses:
+        '200':
+          description: Order updated
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      summary: Delete an order
+      operationId: deleteOrder
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '204':
+          description: Order deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /orders/{orderId}/cancellation:
     post:
       summary: Cancel an order
       operationId: cancelOrder
-
       parameters:
         - name: orderId
           in: path
           required: true
           schema:
             type: integer
-
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CancelOrderRequest'
-
       responses:
         '200':
           description: Order cancelled successfully
@@ -148,149 +229,216 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
-
         '400':
-          description: Malformed cancellation request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
-          description: Order not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
         '409':
-          description: Order cannot be cancelled in its current state
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/Conflict'
         '422':
-          description: Cancellation rejected by the domain
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
 components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Unique key used to safely retry the create request.
+    AcceptHeader:
+      name: Accept
+      in: header
+      required: false
+      schema:
+        type: string
+        example: application/json
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema:
+        type: string
+        example: Bearer demo-token
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Return 304 when the supplied ETag matches the current representation.
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Update only when the supplied ETag matches the current representation.
+
+  headers:
+    ETag:
+      description: Entity tag for the current representation.
+      schema:
+        type: string
+    CacheControl:
+      description: Cache policy for the order representation.
+      schema:
+        type: string
+        example: private, max-age=60
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Missing or empty Bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotAcceptable:
+      description: Unsupported response media type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Order not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Resource state conflicts with the requested action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Domain validation rejected the request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PreconditionFailed:
+      description: If-Match did not match the current ETag
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Per-client rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: Payment Service is unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Problem'
 
   schemas:
-
     CreateOrderRequest:
       type: object
-      required:
-        - userId
-        - restaurantId
-        - items
+      required: [userId, restaurantId, items]
       properties:
         userId:
           type: integer
-
         restaurantId:
           type: integer
-
         paymentMethod:
           type: string
-
         items:
           type: array
           minItems: 1
           items:
             $ref: '#/components/schemas/OrderItem'
-
-
+    UpdateOrderRequest:
+      type: object
+      minProperties: 1
+      properties:
+        userId:
+          type: integer
+        restaurantId:
+          type: integer
+        paymentMethod:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItem'
     OrderItem:
       type: object
-      required:
-        - menuItemId
-        - quantity
+      required: [menuItemId, quantity]
       properties:
         menuItemId:
           type: integer
-
         quantity:
           type: integer
           minimum: 1
-
         price:
           type: number
           minimum: 0
-
-
     CancelOrderRequest:
       type: object
-      required:
-        - userId
+      required: [userId]
       properties:
         userId:
           type: integer
-
-
     OrderResponse:
       type: object
-      required:
-        - orderId
-        - userId
-        - restaurantId
-        - items
-        - totalAmount
-        - status
-        - createdAt
+      required: [orderId, userId, restaurantId, items, totalAmount, status, createdAt]
       properties:
         orderId:
           type: integer
-
         userId:
           type: integer
-
         restaurantId:
           type: integer
-
         items:
           type: array
           items:
             $ref: '#/components/schemas/OrderItem'
-
         totalAmount:
           type: number
-
         status:
           type: string
-          enum:
-            - pending_payment
-            - placed
-            - confirmed
-            - preparing
-            - delivered
-            - cancelled
-
+          enum: [pending_payment, placed, confirmed, preparing, delivered, cancelled]
         createdAt:
           type: string
           format: date-time
-
-
     Problem:
       type: object
-      required:
-        - type
-        - title
-        - status
-        - detail
+      required: [type, title, status, detail]
       properties:
         type:
           type: string
-
         title:
           type: string
-
         status:
           type: integer
-
         detail:
           type: string
