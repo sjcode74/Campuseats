@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, make_response
 from models import Order
 from store import OrderStore
 from errors import problem
-
+from payment_client import charge_payment
 
 app = Flask(__name__)
 
@@ -107,6 +107,25 @@ def create_order():
 
     for item in data["items"]:
         total_amount += item.get("price", 0) * item["quantity"]
+
+    # Call Payment Service
+        # Call Payment Service
+    try:
+        payment_response = charge_payment(
+            order_id=store.next_id,
+            amount=total_amount,
+            payment_method=data.get("paymentMethod", "unknown"),
+            idempotency_key=idempotency_key
+        )
+
+    except Exception as e:
+        print("PAYMENT ERROR:", e)
+
+        return jsonify(problem(
+            503,
+            "Service Unavailable",
+            "Payment Service is unavailable"
+        )), 503
 
     # Create Order object
     order = Order(

@@ -50,6 +50,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 
+        '503':
+          description: Payment Service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
 
     get:
       summary: Get orders filtered by status
@@ -142,6 +149,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
 
+        '400':
+          description: Malformed cancellation request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
         '404':
           description: Order not found
           content:
@@ -162,6 +176,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+
 
 components:
 
