@@ -1,0 +1,109 @@
+ampusEats Order Service - Assignment 5
+curl -v transcript
+
+NOTE:
+This transcript records the HTTP requests/responses used to demonstrate the Assignment 5 requirements.
+The create-order request reached the Order Service successfully, but the Payment Service dependency returned an unavailable condition during the current local run.
+
+1. CREATE ORDER - 503 DEPENDENCY FAILURE
+
+Command:
+
+curl.exe -v http://127.0.0.1:5000/orders `
+  -H "Content-Type: application/json" `
+  -H "Accept: application/json" `
+  -H "Authorization: Bearer test-token" `
+  -H "Idempotency-Key: transcript-001" `
+  --data-binary "@order_request.json"
+
+Observed request:
+
+> POST /orders HTTP/1.1
+> Host: 127.0.0.1:5000
+> User-Agent: curl/8.21.0
+> Content-Type: application/json
+> Accept: application/json
+> Authorization: Bearer test-token
+> Idempotency-Key: transcript-001
+> Content-Length: 164
+
+Observed response:
+
+< HTTP/1.1 503 SERVICE UNAVAILABLE
+< Server: Werkzeug/3.1.8 Python/3.14.7
+< Content-Type: application/json
+< Access-Control-Allow-Origin: *
+< Vary: Origin
+< Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+< X-Content-Type-Options: nosniff
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+{
+  "detail": "Payment Service is unavailable",
+  "status": 503,
+  "title": "Service Unavailable",
+  "type": "about:blank"
+}
+
+
+2. PAYMENT SERVICE CONNECTIVITY CHECK
+
+
+Command:
+
+curl.exe -v http://127.0.0.1:5001/payments
+
+Observed response:
+
+< HTTP/1.1 405 METHOD NOT ALLOWED
+< Allow: OPTIONS, POST
+
+This confirms that the Payment Service was reachable on port 5001 and that
+the /payments resource accepts POST rather than GET.
+
+
+3. REQUIRED ASSIGNMENT 5 TRANSCRIPT CASES
+
+
+The following cases are required by the assignment and should be captured
+with curl -v when the complete local service flow is available:
+
+A. Create order:
+   POST /orders
+   Expected success: 201 Created
+   Expected header: Location: /orders/{orderId}
+
+B. Idempotent retry:
+   Repeat POST /orders using the same Idempotency-Key.
+   Expected behavior: original result is returned without duplicate work.
+
+C. Conditional GET:
+   GET /orders/{orderId} with:
+   If-None-Match: "<etag>"
+   Expected success when the ETag matches: 304 Not Modified
+   No response body.
+
+D. Conditional write:
+   PATCH /orders/{orderId} with:
+   If-Match: "<stale-etag>"
+   Expected response: 412 Precondition Failed.
+
+E. Bad request:
+   Send malformed/invalid JSON.
+   Expected response: 400 Bad Request.
+
+F. Missing resource:
+   GET /orders/999999
+   Expected response: 404 Not Found.
+
+G. Missing authentication:
+   Protected endpoint without Authorization header.
+   Expected response: 401 Unauthorized.
+
+4. NOTE
+
+
+The successful 201/304/412/400/404/401 exchanges above are documented
+as required test cases, but their exact verbose wire output is not fabricated
+here because the current local Payment Service integration returned 503 during
+the actual run.
